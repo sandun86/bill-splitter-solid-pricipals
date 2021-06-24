@@ -52,8 +52,6 @@ class PaymentController extends Controller
     public function postPayment(Request $request)
     {
         $paidData = $request->jsonArray;
-        print_r($paidData);
-        die();
         if (isset($paidData)) {
 
             $payments = [];
@@ -84,6 +82,7 @@ class PaymentController extends Controller
             }
 
             $owesUsers = [];
+            //calculate owe amount for each user
             foreach ($owes as $own => $oweData) {
                 foreach ($oweData as $user => $crdtAmount) {
 
