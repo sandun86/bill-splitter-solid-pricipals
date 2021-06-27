@@ -47,9 +47,19 @@ class PaymentRepository implements PaymentRepositoryInterface
             }
         }
 
-        $owesUsers = [];
+        $owesUsers = $this->_getUserOwes($owes);
+        $payments['owes'] = $owesUsers;
 
-        //calculate owe amount for each user
+        return $payments;
+    }
+
+    /**
+     * calculate owe amount for each user
+     * @param $owes
+     * @return array
+     */
+    private function _getUserOwes($owes){
+        $owesUsers = [];
         foreach ($owes as $own => $oweData) {
             foreach ($oweData as $user => $crdtAmount) {
 
@@ -58,8 +68,7 @@ class PaymentRepository implements PaymentRepositoryInterface
                 $owesUsers[$own][$user] = $payToPrice;
             }
         }
-        $payments['owes'] = $owesUsers;
 
-        return $payments;
+        return $owesUsers;
     }
 }
