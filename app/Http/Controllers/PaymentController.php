@@ -8,21 +8,27 @@
 namespace App\Http\Controllers;
 
 use App\Libraries\Helper;
-use Illuminate\Http\Request;
+use App\Repositories\PaymentRepository;
+use App\Http\Requests\BillCalculateRequest;
 
 class PaymentController extends Controller
 {
     //private variables
-    private $helper;
+    protected $helper;
+    protected $paymentRepository;
 
     /**
+     * PaymentController constructor.
      * @param Helper $helper
+     * @param PaymentRepository $paymentRepository
      */
     public function __construct(
-        Helper $helper
+        Helper $helper,
+        PaymentRepository $paymentRepository
     )
     {
         $this->helper = $helper;
+        $this->paymentRepository = $paymentRepository;
     }
 
     /**
@@ -46,63 +52,36 @@ class PaymentController extends Controller
     }
 
     /**
-     * Get calculated json object
-     * @return view
+     * @param BillCalculateRequest $request
+     * @return Helper
      */
-    public function postPayment(Request $request)
+    public function postPayment(BillCalculateRequest $request)
     {
-        $paidData = $request->jsonArray;
-        if (isset($paidData)) {
+        try {
 
-            $payments = [];
-            $owes = [];
-            if (isset($paidData['data']) && !empty($paidData['data'])) {
+            $paidData = $request->jsonArray;
+            if (isset($paidData)) {
 
-                $payments['days'] = count($paidData['data']);
-                $payments['spentTotal'] = 0;
-                $payments['spent'] = [];
-                foreach ($paidData['data'] as $billData) {
+                $payments = $this->paymentRepository->calculateUserOwn($paidData);
 
-                    $paidAmount = isset($payments['spent'][$billData['paid_by']]) ? $payments['spent'][$billData['paid_by']] : 0;
-                    $payments['spent'][$billData['paid_by']] = $paidAmount + $billData['amount'];
-                    $amount = isset($billData['amount']) ? $billData['amount'] : 0;
-                    $payments['spentTotal'] = $payments['spentTotal'] + $amount;
-                    $totalMembers = count($billData['friends']);
-                    //paid to calculation
-                    foreach ($billData['friends'] as $friend) {
+                return $this->helper
+                    ->response(200, [
+                        'message' => 'You have converted the json data successfully.!',
+                        'data' => $payments
+                    ]);
+            } else {
 
-                        if ($friend !== $billData['paid_by']) {
-
-                            $billForPerson = $billData['amount'] / $totalMembers;
-                            $ownAmount = isset($owes[$friend][$billData['paid_by']]) ? $owes[$friend][$billData['paid_by']] + $billForPerson : $billForPerson;
-                            $owes[$friend][$billData['paid_by']] = $ownAmount;
-                        }
-                    }
-                }
+                return $this->helper
+                    ->response(
+                        400,
+                        ['message' => 'Something went wrong, Please try again later.']
+                    );
             }
-
-            $owesUsers = [];
-            //calculate owe amount for each user
-            foreach ($owes as $own => $oweData) {
-                foreach ($oweData as $user => $crdtAmount) {
-
-                    $ownAmount = isset($owes[$user][$own]) ? $owes[$user][$own] : 0;
-                    $payToPrice = ($crdtAmount - $ownAmount) > 0 ? ($crdtAmount - $ownAmount) : 0;
-                    $owesUsers[$own][$user] = $payToPrice;
-                }
-            }
-            $payments['owes'] = $owesUsers;
-
-            return $this->helper
-                ->response(200, [
-                    'message' => 'You have converted the json data successfully.!',
-                    'data' => $payments
-                ]);
-        } else {
+        } catch (Exception $e) {
 
             return $this->helper
                 ->response(
-                    400,
+                    500,
                     ['message' => 'Something went wrong, Please try again later.']
                 );
         }
