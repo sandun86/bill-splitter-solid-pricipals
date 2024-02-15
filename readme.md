@@ -1,4 +1,4 @@
-## Bill Splitter - Used solid principals 
+## Bill Splitter - Solid principals 
 
 ### Installation
 
